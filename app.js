@@ -1,5 +1,5 @@
 // ╔══════════════════════════════════════════════════════════════╗
-// ║          RIFA GRATIS M — app.js (Lógica 50 exactos)         ║
+// ║          RIFA GRATIS M — app.js (CORREGIDO)                 ║
 // ╚══════════════════════════════════════════════════════════════╝
 
 const PRECIO_BOLETO      = 5;      
@@ -8,9 +8,6 @@ const TOTAL_BOLETOS      = 10000;
 const BOLETOS_POR_PAGINA = 500;    
 const VIP_URL = 'https://chat.whatsapp.com/ChkSensk7jPHY5qS8e2VRM?mode=gi_t'; 
 
-// ─────────────────────────────────────────
-// ESTADO GLOBAL
-// ─────────────────────────────────────────
 let ticketStates    = new Map();
 let availableList   = [];
 let currentPage     = 1;
@@ -18,9 +15,6 @@ let totalPages      = 1;
 let selectedTickets = new Set();
 let cdInterval      = null;
 
-// ─────────────────────────────────────────
-// INICIO
-// ─────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', async () => {
   document.getElementById('statPrecio').textContent = PRECIO_BOLETO;
   document.getElementById('statMin').textContent    = BOLETOS_EXACTOS;
@@ -33,7 +27,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   const configData = configReq.data;
   
   if (configData && configData.ventas_activas === false) {
-    document.getElementById('ticketGrid').innerHTML = '<div style="grid-column:1/-1;text-align:center;padding:40px;background:rgba(239,68,68,0.15);border:2px dashed #ef4444;border-radius:12px;margin:20px;"><h2 style="color:#ef4444;font-size:24px;margin-bottom:10px;">🛑 VENTAS PAUSADAS 🛑</h2><p style="color:#fca5a5;">Estamos esperando los resultados. Nadie puede comprar en este momento. ¡Atentos al grupo VIP!</p></div>';
+    document.getElementById('ticketGrid').innerHTML = '<div style="grid-column:1/-1;text-align:center;padding:40px;background:rgba(239,68,68,0.15);border:2px dashed #ef4444;border-radius:12px;margin:20px;"><h2 style="color:#ef4444;font-size:24px;margin-bottom:10px;">🛑 VENTAS PAUSADAS 🛑</h2><p style="color:#fca5a5;">Estamos esperando los resultados.</p></div>';
     document.getElementById('btnPagar').style.display = 'none';
     const floatingBar = document.getElementById('floatingBar');
     if (floatingBar) floatingBar.style.display = 'none';
@@ -45,9 +39,6 @@ document.addEventListener('DOMContentLoaded', async () => {
   setTimeout(() => openTermsModal(), 600);
 });
 
-// ─────────────────────────────────────────
-// CARGAR ESTADOS DESDE SUPABASE
-// ─────────────────────────────────────────
 async function loadTicketStates() {
   try {
     ticketStates.clear();
@@ -60,10 +51,7 @@ async function loadTicketStates() {
         if (data.length < 1000) { hayMasData = false; } else { desde += 1000; hasta += 1000; }
       } else { hayMasData = false; }
     }
-  } catch(e) {
-    console.error(e);
-    showToast('⚠️ Error al sincronizar números', 2000);
-  }
+  } catch(e) { showToast('⚠️ Error al sincronizar números', 2000); }
 }
 
 function buildAvailableList() {
@@ -114,7 +102,6 @@ function renderPage() {
   document.getElementById('btnNext').disabled = (currentPage === totalPages);
 }
 
-// ◄ Permite elegir a mano
 function toggleTicket(num) {
   if (selectedTickets.has(num)) {
     selectedTickets.delete(num);
@@ -143,7 +130,6 @@ function jumpToPage() {
   }
 }
 
-// ◄ Otorga exactamente 50 números al azar
 function randomSelect() {
   selectedTickets.clear();
   let pool = [...availableList];
@@ -172,15 +158,12 @@ function clearSelection(showMsg) {
 function updateFloatingBar() {
   let count = selectedTickets.size;
   document.getElementById('countLabel').innerHTML = `${count} / 50`;
-  document.getElementById('totalPrice').textContent = `Bs. ${count * PRECIO_BOLETO}`;
+  let tPrice = document.getElementById('totalPrice');
+  if (tPrice) tPrice.textContent = `Bs. ${count * PRECIO_BOLETO}`;
   let pct = Math.min((count / BOLETOS_EXACTOS) * 100, 100);
   document.getElementById('progressBar').style.width = pct + '%';
-  // El botón Pagar siempre queda opacidad completa para que puedan presionarlo y ver el mensaje
 }
 
-// ─────────────────────────────────────────
-// PAGO Y MODALES CON VALIDACIÓN EXACTA
-// ─────────────────────────────────────────
 function openTermsModal() {
   if (!localStorage.getItem('termsAgreed')) document.getElementById('termsModal').style.display = 'flex';
 }
@@ -193,7 +176,6 @@ function acceptTerms() {
 function openPayModal() {
   let count = selectedTickets.size;
   
-  // ◄ LÓGICA DE ALERTA EXACTA
   if (count === 0) {
     showToast('⚠️ No has seleccionado ningún boleto.');
     return;
@@ -209,16 +191,17 @@ function openPayModal() {
     return;
   }
 
-  // Pasa la validación
   const chips = document.getElementById('selectedChips');
-  chips.innerHTML = '';
-  [...selectedTickets].sort((a,b) => a-b).forEach(n => {
-    const c = document.createElement('span');
-    c.className = 'selected-chip';
-    c.textContent = String(n).padStart(4,'0');
-    chips.appendChild(c);
-  });
-  document.getElementById('modalTotal').textContent = 'Bs. ' + (selectedTickets.size * PRECIO_BOLETO);
+  if (chips) {
+    chips.innerHTML = '';
+    [...selectedTickets].sort((a,b) => a-b).forEach(n => {
+      const c = document.createElement('span');
+      c.className = 'selected-chip';
+      c.textContent = String(n).padStart(4,'0');
+      chips.appendChild(c);
+    });
+  }
+  
   document.getElementById('payModal').style.display = 'flex';
 }
 
@@ -233,7 +216,7 @@ function previewCapture(input) {
       let img = document.getElementById('capturePreview');
       img.src = e.target.result;
       img.classList.remove('hidden');
-      document.getElementById('uploadText').textContent = "Capture cargado ✅";
+      document.getElementById('uploadText').textContent = "Foto cargada ✅";
       document.getElementById('uploadIcon').textContent = "🖼️";
     };
     reader.readAsDataURL(file);
@@ -250,7 +233,7 @@ async function submitOrder(e) {
   const cedula = document.getElementById('fCedula').value;
   const whatsapp = document.getElementById('fWhatsapp').value;
   const totalPagado = selectedTickets.size * PRECIO_BOLETO;
-  const referencia = document.getElementById('fRef').value;
+  const referencia = document.getElementById('fRef') ? document.getElementById('fRef').value : '000000';
   const file = document.getElementById('fCapture').files[0];
   const numerosArr = Array.from(selectedTickets).sort((a,b) => a-b);
 
@@ -266,11 +249,10 @@ async function submitOrder(e) {
     if (duplicados && duplicados.length > 0) {
       showToast('⚠️ REGISTRO DENEGADO: Ya existe un registro con esta cédula o teléfono.', 4500);
       btn.disabled = false;
-      btn.innerHTML = '🚀 Confirmar y Reservar';
+      btn.innerHTML = '🚀 Confirmar y Asignar';
       return; 
     }
 
-    // Si pasa el escudo, registra la venta
     const ext = file.name.split('.').pop();
     const filePath = `captures/${Date.now()}_${cedula}.${ext}`;
     const { error: uploadError } = await db.storage.from('captures').upload(filePath, file);
@@ -296,8 +278,7 @@ async function submitOrder(e) {
     document.getElementById('successSummary').innerHTML = `
       <div class="text-white">👤 ${nombre}</div>
       <div class="text-white">🎟️ ${numerosArr.length} boletos</div>
-      <div class="text-white">💰 Pagado: Bs. ${totalPagado}</div>
-      <div class="text-white text-xs mt-1 text-gray-400">Ref: ${referencia}</div>
+      <div class="text-white text-xs mt-1 text-gray-400">C.I: ${cedula}</div>
     `;
     document.getElementById('successModal').style.display = 'flex';
     clearSelection(false);
@@ -308,14 +289,14 @@ async function submitOrder(e) {
   } catch(error) {
     showToast('❌ Error al enviar. Revisa tu conexión.');
     btn.disabled = false;
-    btn.innerHTML = '🚀 Confirmar y Reservar';
+    btn.innerHTML = '🚀 Confirmar y Asignar';
   }
 }
 
 async function notificarTelegram(nombre, boletos, total, ref) {
   const BOT_TOKEN = '8666595624:AAGoWxS-9QGxtB1p4opumRqWoyB4n-Su4tI'; 
   const CHAT_ID = '5873749605'; 
-  const mensaje = `🚨 ¡NUEVA RESERVA — Rifa Gratis M! 🔰\n\n👤 Cliente: ${nombre}\n🎟️ Boletos: ${boletos}\n💰 Pago: Bs. ${total}\n🔢 Referencia: ${ref}`;
+  const mensaje = `🚨 ¡NUEVO REGISTRO! 🔰\n\n👤 Cliente: ${nombre}\n🎟️ Boletos: ${boletos}`;
   await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
     method: 'POST', headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ chat_id: CHAT_ID, text: mensaje })
@@ -349,15 +330,15 @@ async function buscarMisBoletos() {
   
   btn.textContent = '⏳'; btn.disabled = true; resultsDiv.innerHTML = '';
   try {
-    const { data, error } = await db.from('pedidos').select('id,nombre,cedula,numeros,total,estado,created_at').ilike('cedula', '%' + cedula.replace(/^[VEJvej]-?/,'') + '%');
+    const { data, error } = await db.from('pedidos').select('id,nombre,cedula,numeros,estado').ilike('cedula', '%' + cedula.replace(/^[VEJvej]-?/,'') + '%');
     if (error) throw error;
     if (!data || data.length === 0) {
-      resultsDiv.innerHTML = `<div style="background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.3);border-radius:14px;padding:16px;text-align:center;color:#FCA5A5;font-weight:700">❌ No se encontraron reservas confirmadas.</div>`;
+      resultsDiv.innerHTML = `<div style="background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.3);border-radius:14px;padding:16px;text-align:center;color:#FCA5A5;font-weight:700">❌ No se encontraron registros.</div>`;
     } else {
       let html = '';
       data.forEach(p => {
         let badge = p.estado === 'aprobado' ? '<span style="background:rgba(34,197,94,.2);color:#86EFAC;padding:2px 6px;border-radius:6px;font-size:11px">Aprobado</span>' : '<span style="background:rgba(234,179,8,.2);color:#FDE68A;padding:2px 6px;border-radius:6px;font-size:11px">Pendiente</span>';
-        html += `<div style="background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);border-radius:12px;padding:12px;margin-bottom:8px;font-size:13px;"><div class="flex justify-between mb-2"><strong>${p.nombre}</strong>${badge}</div><div class="text-gray-400 text-xs mb-1">Boletos: <span class="text-white">${p.numeros}</span></div><div class="text-orange-300 font-bold">Total: Bs. ${p.total}</div></div>`;
+        html += `<div style="background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);border-radius:12px;padding:12px;margin-bottom:8px;font-size:13px;"><div class="flex justify-between mb-2"><strong>${p.nombre}</strong>${badge}</div><div class="text-gray-400 text-xs mb-1">Boletos: <span class="text-white">${p.numeros}</span></div></div>`;
       });
       resultsDiv.innerHTML = html;
     }
