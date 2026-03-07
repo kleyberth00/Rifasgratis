@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Admin — Rifa Gratis M 🔰</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&family=Space+Grotesk:wght@400;500;700&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --gold:#EAB308; --gold-light:#FDE68A; --gold-dark:#A16207;
+      --orange:#F97316; --orange-light:#FDBA74; --orange-dark:#C2410C;
+      --bg:#0a0a0f; --surface:#111118; --surface2:#1a1a24;
+      --text:#F1F0FF; --text-muted:#9B9BAA;
+    }
+    * { box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+    body { font-family:'Nunito',sans-serif; background:var(--bg); color:var(--text); min-height:100vh; }
+    body::before {
+      content:''; position:fixed; inset:0;
+      background:
+        radial-gradient(ellipse at 20%   0%, rgba(234,179,8,.15)  0%, transparent 60%),
+        radial-gradient(ellipse at 80% 100%, rgba(249,115,22,.12)  0%, transparent 60%);
+      pointer-events:none; z-index:0;
+    }
+    .content { position:relative; z-index:1; }
+
+    .card { background:rgba(255,255,255,.04); border:1px solid rgba(255,255,255,.08); border-radius:16px; }
+    .badge { padding:4px 10px; border-radius:8px; font-size:11px; font-weight:800; display:inline-block; }
+    .badge-pendiente { background:rgba(234,179,8,.2);  color:#FDE68A; border:1px solid rgba(234,179,8,.4); }
+    .badge-aprobado  { background:rgba(34,197,94,.2);  color:#86EFAC; border:1px solid rgba(34,197,94,.4); }
+    .badge-rechazado { background:rgba(239,68,68,.2);  color:#FCA5A5; border:1px solid rgba(239,68,68,.4); }
+
+    .btn-approve {
+      background:linear-gradient(135deg,var(--orange-dark),var(--orange));
+      color:#fff; font-weight:800; border:none; border-radius:10px;
+      cursor:pointer; font-family:'Nunito',sans-serif; transition:transform .15s;
+    }
+    .btn-approve:active { transform:scale(.96); }
+    .btn-reject {
+      background:linear-gradient(135deg,#EF4444,#DC2626);
+      color:#fff; font-weight:800; border:none; border-radius:10px;
+      cursor:pointer; font-family:'Nunito',sans-serif; transition:transform .15s;
+    }
+    .btn-reject:active { transform:scale(.96); }
+    .btn-reset {
+      background:linear-gradient(135deg,#7F1D1D,#DC2626); color:#fff; font-weight:900;
+      border:2px solid rgba(239,68,68,.5); border-radius:16px; cursor:pointer;
+      font-family:'Nunito',sans-serif; transition:transform .15s, box-shadow .15s;
+      box-shadow:0 4px 24px rgba(220,38,38,.4);
+    }
+    .btn-reset:active { transform:scale(.97); }
+
+    .btn-edit-landing {
+      background:linear-gradient(135deg,var(--gold-dark),var(--orange));
+      color:#000; font-weight:800; border:none; border-radius:12px;
+      cursor:pointer; font-family:'Nunito',sans-serif; transition:transform .15s;
+      box-shadow:0 4px 20px rgba(234,179,8,.4); font-size:13px;
+    }
+    .btn-edit-landing:active { transform:scale(.97); }
+
+    .landing-edit-panel {
+      background:linear-gradient(135deg,rgba(234,179,8,.08),rgba(249,115,22,.05));
+      border:1px solid rgba(234,179,8,.3); border-radius:18px; padding:16px;
+      margin:0 16px 16px;
+    }
+
+    .login-screen { min-height:100vh; display:flex; align-items:center; justify-content:center; padding:20px; }
+    .login-card {
+      background:var(--surface); border:1px solid rgba(234,179,8,.3);
+      border-radius:24px; padding:32px 24px; width:100%; max-width:360px;
+      box-shadow:0 20px 60px rgba(234,179,8,.2);
+    }
+    .form-input {
+      background:rgba(255,255,255,.06); border:1.5px solid rgba(255,255,255,.12);
+      border-radius:12px; color:#fff; outline:none; width:100%;
+      font-family:'Nunito',sans-serif; padding:12px 16px; transition:border-color .2s;
+    }
+    .form-input:focus { border-color:var(--gold-light); }
+    .form-input::placeholder { color:var(--text-muted); }
+    .btn-primary {
+      background:linear-gradient(135deg,var(--gold-dark),var(--gold) 50%,var(--orange));
+      color:#000; font-weight:800; border:none; border-radius:14px;
+      cursor:pointer; width:100%; padding:14px; font-size:15px;
+      font-family:'Nunito',sans-serif; transition:transform .15s;
+    }
+    .btn-primary:active { transform:scale(.97); }
+
+    .num-chip {
+      background:rgba(234,179,8,.2); border:1px solid rgba(234,179,8,.35);
+      border-radius:6px; padding:2px 8px; font-size:11px; font-weight:700;
+      color:var(--gold-light); display:inline-block; margin:2px;
+    }
+    .toast {
+      position:fixed; top:20px; left:50%; transform:translateX(-50%);
+      background:var(--surface2); border:1px solid rgba(255,255,255,.15);
+      border-radius:14px; padding:12px 20px; font-weight:700; font-size:14px;
+      z-index:9999; box-shadow:0 8px 30px rgba(0,0,0,.5);
+    }
+  </style>
+</head>
+
+<body>
+<div class="content">
+
+  <div id="loginScreen" class="login-screen">
+    <div class="login-card text-center">
+      <div class="text-5xl mb-4">🔰</div>
+      <h2 class="text-2xl font-black mb-1">Rifa Gratis M</h2>
+      <p class="text-sm text-gray-400 mb-6">Panel de Administración</p>
+      <input type="password" id="loginPass" class="form-input mb-4 text-center" placeholder="••••••••" />
+      <button onclick="doLogin()" class="btn-primary">Ingresar</button>
+    </div>
+  </div>
+
+  <div id="adminPanel" style="display:none">
+    
+    <header class="p-4 border-b border-white/10 bg-black/40 backdrop-blur-md sticky top-0 z-40">
+      <div class="flex justify-between items-center max-w-5xl mx-auto">
+        <div class="font-black text-xl text-yellow-400">Panel Admin</div>
+        <div class="flex gap-2">
+          <button onclick="toggleLandingPanel()" class="btn-edit-landing px-4 py-2">⚙️ Ajustes</button>
+          <button onclick="doLogout()" class="text-red-400 text-sm font-bold px-3">Salir</button>
+        </div>
+      </div>
+    </header>
+
+    <main class="p-4 max-w-5xl mx-auto">
+      <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
+        <div class="card p-4 text-center">
+          <div class="text-xs text-gray-400">Total Reservas</div>
+          <div class="text-xl font-black text-white" id="statTotal">0</div>
+        </div>
+        <div class="card p-4 text-center">
+          <div class="text-xs text-gray-400">Pendientes</div>
+          <div class="text-xl font-black text-yellow-400" id="statPend">0</div>
+        </div>
+        <div class="card p-4 text-center">
+          <div class="text-xs text-gray-400">Aprobadas</div>
+          <div class="text-xl font-black text-orange-400" id="statAprob">0</div>
+        </div>
+        <div class="card p-4 text-center">
+          <div class="text-xs text-gray-400">Rechazadas</div>
+          <div class="text-xl font-black text-red-400" id="statRech">0</div>
+        </div>
+      </div>
+
+      <div id="landingEditPanel" class="landing-edit-panel">
+        <div class="flex items-center gap-2 mb-3">
+          <span class="text-2xl">⚙️</span>
+          <div>
+            <div class="font-black text-yellow-300">Controles de la Página</div>
+          </div>
+        </div>
+        <div class="flex gap-3 mt-3">
+          <button onclick="cambiarEstadoVentas(false)" style="flex:1;background:#ef4444;color:white;padding:10px;border-radius:8px;font-weight:bold;font-size:13px;">🛑 PAUSAR VENTAS</button>
+          <button onclick="cambiarEstadoVentas(true)" style="flex:1;background:#f97316;color:white;padding:10px;border-radius:8px;font-weight:bold;font-size:13px;">🟢 ABRIR VENTAS</button>
+        </div>
+      </div>
+
+      <h3 class="font-black text-lg mb-4 flex justify-between items-center">
+        <span>Últimas Reservas</span>
+        <button onclick="loadPedidos()" class="text-sm text-yellow-400">🔄 Actualizar</button>
+      </h3>
+      
+      <div id="pedidosList" class="space-y-3"></div>
+      
+    </main>
+  </div>
+
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="config.js"></script>
+<script>
+  let allPedidos = [];
+
+  function doLogin() {
+    if (document.getElementById('loginPass').value === 'admin123') {
+      document.getElementById('loginScreen').style.display = 'none';
+      document.getElementById('adminPanel').style.display = 'block';
+      loadPedidos();
+    } else {
+      showToast('❌ Contraseña incorrecta');
+    }
+  }
+
+  function doLogout() {
+    document.getElementById('adminPanel').style.display = 'none';
+    document.getElementById('loginScreen').style.display = 'flex';
+    document.getElementById('loginPass').value = '';
+  }
+
+  function toggleLandingPanel() {
+    const p = document.getElementById('landingEditPanel');
+    p.style.display = p.style.display === 'none' ? 'block' : 'none';
+  }
+
+  async function cambiarEstadoVentas(activo) {
+    try {
+      await db.from('landing_config').upsert([{ id:'main', ventas_activas: activo }], { onConflict:'id' });
+      showToast(activo ? '🟢 Ventas Abiertas' : '🛑 Ventas Pausadas');
+    } catch(err) { showToast('❌ Error'); }
+  }
+
+  async function loadPedidos() {
+    try {
+      const { data, error } = await db.from('pedidos').select('*').order('created_at', { ascending:false });
+      if (error) throw error;
+      allPedidos = data || [];
+      updateStats();
+      renderPedidos(allPedidos);
+    } catch(err) { showToast('Error al cargar pedidos'); }
+  }
+
+  function updateStats() {
+    document.getElementById('statTotal').textContent = allPedidos.length;
+    document.getElementById('statPend').textContent = allPedidos.filter(p => p.estado === 'pendiente').length;
+    document.getElementById('statAprob').textContent = allPedidos.filter(p => p.estado === 'aprobado').length;
+    document.getElementById('statRech').textContent = allPedidos.filter(p => p.estado === 'rechazado').length;
+  }
+
+  function renderPedidos(lista) {
+    const container = document.getElementById('pedidosList');
+    container.innerHTML = '';
+    if (lista.length === 0) {
+      container.innerHTML = '<div class="text-center p-8 text-gray-500">No hay reservas aún.</div>';
+      return;
+    }
+    lista.forEach(p => {
+      let badgeCls = p.estado === 'aprobado' ? 'badge-aprobado' : (p.estado === 'rechazado' ? 'badge-rechazado' : 'badge-pendiente');
+      let html = `
+        <div class="card p-4">
+          <div class="flex justify-between items-start mb-3">
+            <div>
+              <div class="font-black text-lg">${p.nombre}</div>
+              <div class="text-xs text-gray-400">${p.cedula} | ${p.whatsapp}</div>
+            </div>
+            <div class="badge ${badgeCls}">${p.estado.toUpperCase()}</div>
+          </div>
+          <div class="mb-3">
+            <div class="text-xs text-yellow-300 mb-1">Boletos:</div>
+            <div>${p.numeros.split(',').map(n => `<span class="num-chip">${n.trim()}</span>`).join('')}</div>
+          </div>
+          <div class="flex justify-between items-center mb-4">
+            <div class="text-sm font-bold text-orange-300">Bs. ${p.total}</div>
+            <div class="text-xs bg-white/10 px-2 py-1 rounded">Ref: ${p.referencia}</div>
+          </div>
+      `;
+      if (p.capture_url) {
+        html += `<a href="${p.capture_url}" target="_blank" class="block text-center text-xs text-blue-400 mb-4 underline">Ver Capture Bancario</a>`;
+      }
+      if (p.estado === 'pendiente') {
+        html += `
+          <div class="flex gap-2 border-t border-white/10 pt-3">
+            <button onclick="approveOrder('${p.id}')" class="btn-approve flex-1 py-2">✅ Aprobar</button>
+            <button onclick="rejectOrder('${p.id}')" class="btn-reject flex-1 py-2">❌ Rechazar</button>
+          </div>
+        `;
+      }
+      html += `</div>`;
+      container.innerHTML += html;
+    });
+  }
+
+  async function approveOrder(pedidoId) {
+    if (!confirm('¿Aprobar pedido?')) return;
+    try {
+      await db.from('pedidos').update({estado:'aprobado'}).eq('id',pedidoId);
+      await db.from('tickets').update({estado:'vendido'}).eq('pedido_id',pedidoId);
+      showToast('✅ Aprobado');
+      loadPedidos();
+    } catch(err) { showToast('❌ Error'); }
+  }
+
+  async function rejectOrder(pedidoId) {
+    if (!confirm('¿Rechazar pedido liberando números?')) return;
+    try {
+      await db.from('pedidos').update({estado:'rechazado'}).eq('id',pedidoId);
+      await db.from('tickets').delete().eq('pedido_id',pedidoId);
+      showToast('❌ Rechazado');
+      loadPedidos();
+    } catch(err) { showToast('❌ Error'); }
+  }
+
+  function showToast(msg) {
+    const old = document.querySelector('.toast'); if (old) old.remove();
+    const t = document.createElement('div');
+    t.className = 'toast'; t.textContent = msg;
+    document.body.appendChild(t);
+    setTimeout(() => t.remove(), 2500);
+  }
+</script>
+</body>
+</html>

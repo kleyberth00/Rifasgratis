@@ -1,0 +1,393 @@
+// ╔══════════════════════════════════════════════════════════════╗
+// ║          RIFA GRATIS M — app.js (Lógica 50 exactos)         ║
+// ╚══════════════════════════════════════════════════════════════╝
+
+const PRECIO_BOLETO      = 5;      
+const BOLETOS_EXACTOS    = 50;     // ◄ Siempre exige 50
+const TOTAL_BOLETOS      = 10000;  
+const BOLETOS_POR_PAGINA = 500;    
+const VIP_URL = 'https://chat.whatsapp.com/ChkSensk7jPHY5qS8e2VRM?mode=gi_t'; 
+
+// ─────────────────────────────────────────
+// ESTADO GLOBAL
+// ─────────────────────────────────────────
+let ticketStates    = new Map();
+let availableList   = [];
+let currentPage     = 1;
+let totalPages      = 1;
+let selectedTickets = new Set();
+let cdInterval      = null;
+
+// ─────────────────────────────────────────
+// INICIO
+// ─────────────────────────────────────────
+document.addEventListener('DOMContentLoaded', async () => {
+  document.getElementById('statPrecio').textContent = PRECIO_BOLETO;
+  document.getElementById('statMin').textContent    = BOLETOS_EXACTOS;
+  
+  showToast('⏳ Cargando rifas...', 1800);
+  await loadTicketStates();
+  buildAvailableList();
+
+  const configReq = await db.from('landing_config').select('ventas_activas').eq('id', 'main').single();
+  const configData = configReq.data;
+  
+  if (configData && configData.ventas_activas === false) {
+    document.getElementById('ticketGrid').innerHTML = '<div style="grid-column:1/-1;text-align:center;padding:40px;background:rgba(239,68,68,0.15);border:2px dashed #ef4444;border-radius:12px;margin:20px;"><h2 style="color:#ef4444;font-size:24px;margin-bottom:10px;">🛑 VENTAS PAUSADAS 🛑</h2><p style="color:#fca5a5;">Estamos esperando los resultados. Nadie puede comprar en este momento. ¡Atentos al grupo VIP!</p></div>';
+    document.getElementById('btnPagar').style.display = 'none';
+    const floatingBar = document.getElementById('floatingBar');
+    if (floatingBar) floatingBar.style.display = 'none';
+    return;
+  }
+
+  renderPage();
+  updateSalesBar();
+  setTimeout(() => openTermsModal(), 600);
+});
+
+// ─────────────────────────────────────────
+// CARGAR ESTADOS DESDE SUPABASE
+// ─────────────────────────────────────────
+async function loadTicketStates() {
+  try {
+    ticketStates.clear();
+    let desde = 0, hasta = 999, hayMasData = true;
+    while (hayMasData) {
+      const { data, error } = await db.from('tickets').select('numero,estado').in('estado', ['vendido','reservado']).range(desde, hasta);
+      if (error) throw error;
+      if (data && data.length > 0) {
+        data.forEach(t => ticketStates.set(parseInt(t.numero), t.estado));
+        if (data.length < 1000) { hayMasData = false; } else { desde += 1000; hasta += 1000; }
+      } else { hayMasData = false; }
+    }
+  } catch(e) {
+    console.error(e);
+    showToast('⚠️ Error al sincronizar números', 2000);
+  }
+}
+
+function buildAvailableList() {
+  availableList = [];
+  for (let i = 0; i < TOTAL_BOLETOS; i++) {
+    if (!ticketStates.has(i)) availableList.push(i);
+  }
+  totalPages = Math.max(1, Math.ceil(availableList.length / BOLETOS_POR_PAGINA));
+  if (currentPage > totalPages) currentPage = 1;
+}
+
+function updateSalesBar() {
+  const sold = TOTAL_BOLETOS - availableList.length;
+  const pct  = Math.round((sold / TOTAL_BOLETOS) * 100);
+  const fillEl = document.getElementById('salesFill');
+  const pctEl  = document.getElementById('salesPct');
+  const soldEl = document.getElementById('salesSold');
+  if (fillEl) fillEl.style.width = pct + '%';
+  if (pctEl) pctEl.textContent = pct + '%';
+  if (soldEl) soldEl.textContent = sold;
+  const disp = document.getElementById('statDisp');
+  if (disp) disp.textContent = availableList.length;
+}
+
+function renderPage() {
+  const grid = document.getElementById('ticketGrid');
+  if (!grid) return;
+  grid.innerHTML = '';
+  const start = (currentPage - 1) * BOLETOS_POR_PAGINA;
+  const end = start + BOLETOS_POR_PAGINA;
+  
+  for (let i = start; i < end && i < TOTAL_BOLETOS; i++) {
+    let numStr = i.toString().padStart(4, '0');
+    let t = document.createElement('div');
+    t.className = 'ticket ' + (selectedTickets.has(i) ? 'ticket-selected' : 'ticket-available');
+    t.textContent = numStr;
+    if (ticketStates.has(i)) {
+      t.style.opacity = '0.3';
+      t.style.cursor = 'not-allowed';
+      t.style.background = ticketStates.get(i) === 'vendido' ? 'rgba(239,68,68,0.2)' : 'rgba(234,179,8,0.2)';
+    } else {
+      t.onclick = () => toggleTicket(i);
+    }
+    grid.appendChild(t);
+  }
+  document.getElementById('pageIndicator').textContent = `${currentPage} / ${totalPages}`;
+  document.getElementById('btnPrev').disabled = (currentPage === 1);
+  document.getElementById('btnNext').disabled = (currentPage === totalPages);
+}
+
+// ◄ Permite elegir a mano
+function toggleTicket(num) {
+  if (selectedTickets.has(num)) {
+    selectedTickets.delete(num);
+  } else {
+    selectedTickets.add(num);
+  }
+  renderPage();
+  updateFloatingBar();
+}
+
+function changePage(dir) {
+  let newPage = currentPage + dir;
+  if (newPage >= 1 && newPage <= totalPages) {
+    currentPage = newPage;
+    renderPage();
+  }
+}
+
+function jumpToPage() {
+  let input = parseInt(document.getElementById('pageJump').value);
+  if (!isNaN(input) && input >= 1 && input <= totalPages) {
+    currentPage = input;
+    renderPage();
+  } else {
+    showToast(`Ingresa una pág entre 1 y ${totalPages}`);
+  }
+}
+
+// ◄ Otorga exactamente 50 números al azar
+function randomSelect() {
+  selectedTickets.clear();
+  let pool = [...availableList];
+  if (pool.length < BOLETOS_EXACTOS) { showToast(`❌ Solo quedan ${pool.length} boletos disponibles.`); return; }
+  
+  for (let i = 0; i < BOLETOS_EXACTOS; i++) {
+    const j = i + Math.floor(Math.random() * (pool.length - i));
+    [pool[i], pool[j]] = [pool[j], pool[i]];
+    selectedTickets.add(pool[i]);
+  }
+  
+  const first = Math.min(...selectedTickets);
+  currentPage = Math.floor(availableList.indexOf(first) / BOLETOS_POR_PAGINA) + 1;
+  renderPage();
+  updateFloatingBar();
+  showToast(`🎲 ¡Tus 50 números fueron asignados al azar!`, 2000);
+}
+
+function clearSelection(showMsg) {
+  selectedTickets.clear();
+  renderPage();
+  updateFloatingBar();
+  if (showMsg !== false) showToast('🗑️ Selección limpia', 1500);
+}
+
+function updateFloatingBar() {
+  let count = selectedTickets.size;
+  document.getElementById('countLabel').innerHTML = `${count} / 50`;
+  document.getElementById('totalPrice').textContent = `Bs. ${count * PRECIO_BOLETO}`;
+  let pct = Math.min((count / BOLETOS_EXACTOS) * 100, 100);
+  document.getElementById('progressBar').style.width = pct + '%';
+  // El botón Pagar siempre queda opacidad completa para que puedan presionarlo y ver el mensaje
+}
+
+// ─────────────────────────────────────────
+// PAGO Y MODALES CON VALIDACIÓN EXACTA
+// ─────────────────────────────────────────
+function openTermsModal() {
+  if (!localStorage.getItem('termsAgreed')) document.getElementById('termsModal').style.display = 'flex';
+}
+
+function acceptTerms() {
+  localStorage.setItem('termsAgreed', 'true');
+  document.getElementById('termsModal').style.display = 'none';
+}
+
+function openPayModal() {
+  let count = selectedTickets.size;
+  
+  // ◄ LÓGICA DE ALERTA EXACTA
+  if (count === 0) {
+    showToast('⚠️ No has seleccionado ningún boleto.');
+    return;
+  }
+  if (count < BOLETOS_EXACTOS) {
+    let faltan = BOLETOS_EXACTOS - count;
+    showToast(`⚠️ Mínimo son 50. Te faltan ${faltan} números.`);
+    return;
+  }
+  if (count > BOLETOS_EXACTOS) {
+    let sobran = count - BOLETOS_EXACTOS;
+    showToast(`⚠️ Son 50 nada más. Por favor elimine ${sobran}.`);
+    return;
+  }
+
+  // Pasa la validación
+  const chips = document.getElementById('selectedChips');
+  chips.innerHTML = '';
+  [...selectedTickets].sort((a,b) => a-b).forEach(n => {
+    const c = document.createElement('span');
+    c.className = 'selected-chip';
+    c.textContent = String(n).padStart(4,'0');
+    chips.appendChild(c);
+  });
+  document.getElementById('modalTotal').textContent = 'Bs. ' + (selectedTickets.size * PRECIO_BOLETO);
+  document.getElementById('payModal').style.display = 'flex';
+}
+
+function closePayModal() { document.getElementById('payModal').style.display = 'none'; }
+function copyText(text, msg) { navigator.clipboard.writeText(text).then(() => showToast(msg)); }
+
+function previewCapture(input) {
+  let file = input.files[0];
+  if (file) {
+    let reader = new FileReader();
+    reader.onload = e => {
+      let img = document.getElementById('capturePreview');
+      img.src = e.target.result;
+      img.classList.remove('hidden');
+      document.getElementById('uploadText').textContent = "Capture cargado ✅";
+      document.getElementById('uploadIcon').textContent = "🖼️";
+    };
+    reader.readAsDataURL(file);
+  }
+}
+
+async function submitOrder(e) {
+  e.preventDefault();
+  const btn = e.target.querySelector('button[type="submit"]');
+  btn.disabled = true;
+  btn.innerHTML = '⏳ Procesando y Verificando...';
+  
+  const nombre = document.getElementById('fNombre').value;
+  const cedula = document.getElementById('fCedula').value;
+  const whatsapp = document.getElementById('fWhatsapp').value;
+  const totalPagado = selectedTickets.size * PRECIO_BOLETO;
+  const referencia = document.getElementById('fRef').value;
+  const file = document.getElementById('fCapture').files[0];
+  const numerosArr = Array.from(selectedTickets).sort((a,b) => a-b);
+
+  try {
+    // ◄ ESCUDO ANTIFRAUDE: Bloquea si la cédula o el teléfono ya existen
+    const { data: duplicados, error: errDup } = await db
+      .from('pedidos')
+      .select('id')
+      .or(`cedula.eq.${cedula},whatsapp.eq.${whatsapp}`);
+      
+    if (errDup) throw errDup;
+    
+    if (duplicados && duplicados.length > 0) {
+      showToast('⚠️ REGISTRO DENEGADO: Ya existe un registro con esta cédula o teléfono.', 4500);
+      btn.disabled = false;
+      btn.innerHTML = '🚀 Confirmar y Reservar';
+      return; 
+    }
+
+    // Si pasa el escudo, registra la venta
+    const ext = file.name.split('.').pop();
+    const filePath = `captures/${Date.now()}_${cedula}.${ext}`;
+    const { error: uploadError } = await db.storage.from('captures').upload(filePath, file);
+    if (uploadError) throw uploadError;
+    const captureUrl = db.storage.from('captures').getPublicUrl(filePath).data.publicUrl;
+
+    const { data: pData, error: pError } = await db.from('pedidos').insert([{
+      nombre, cedula, whatsapp, total: totalPagado, referencia,
+      numeros: numerosArr.map(n => String(n).padStart(4,'0')).join(', '),
+      capture_url: captureUrl, estado: 'pendiente'
+    }]).select().single();
+    if (pError) throw pError;
+
+    const ticketsToInsert = numerosArr.map(n => ({ numero: n, pedido_id: pData.id, estado: 'reservado' }));
+    const { error: tErr } = await db.from('tickets').upsert(ticketsToInsert, { onConflict: 'numero' });
+    if (tErr) throw tErr;
+
+    numerosArr.forEach(n => ticketStates.set(n, 'reservado'));
+    buildAvailableList();
+    closePayModal();
+    notificarTelegram(nombre, numerosArr.length, totalPagado, referencia);
+    
+    document.getElementById('successSummary').innerHTML = `
+      <div class="text-white">👤 ${nombre}</div>
+      <div class="text-white">🎟️ ${numerosArr.length} boletos</div>
+      <div class="text-white">💰 Pagado: Bs. ${totalPagado}</div>
+      <div class="text-white text-xs mt-1 text-gray-400">Ref: ${referencia}</div>
+    `;
+    document.getElementById('successModal').style.display = 'flex';
+    clearSelection(false);
+    renderPage();
+    updateSalesBar();
+    startVIPCountdown();
+    
+  } catch(error) {
+    showToast('❌ Error al enviar. Revisa tu conexión.');
+    btn.disabled = false;
+    btn.innerHTML = '🚀 Confirmar y Reservar';
+  }
+}
+
+async function notificarTelegram(nombre, boletos, total, ref) {
+  const BOT_TOKEN = '8666595624:AAGoWxS-9QGxtB1p4opumRqWoyB4n-Su4tI'; 
+  const CHAT_ID = '5873749605'; 
+  const mensaje = `🚨 ¡NUEVA RESERVA — Rifa Gratis M! 🔰\n\n👤 Cliente: ${nombre}\n🎟️ Boletos: ${boletos}\n💰 Pago: Bs. ${total}\n🔢 Referencia: ${ref}`;
+  await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ chat_id: CHAT_ID, text: mensaje })
+  });
+}
+
+const searchInput = document.getElementById('searchInput');
+if (searchInput) {
+  searchInput.addEventListener('input', (e) => {
+    let val = e.target.value;
+    if (val.length === 4) {
+      let tickets = document.querySelectorAll('.ticket');
+      tickets.forEach(tk => {
+        if (tk.textContent === val) {
+          tk.style.boxShadow = '0 0 15px #F97316';
+          setTimeout(() => tk.style.boxShadow = '', 2000);
+        }
+      });
+    }
+  });
+}
+
+function openVerifyModal() { document.getElementById('verifyModal').style.display = 'flex'; }
+function closeVerifyModal() { document.getElementById('verifyModal').style.display = 'none'; document.getElementById('verifyResults').innerHTML=''; }
+
+async function buscarMisBoletos() {
+  const btn = document.getElementById('btnBuscarBoletos');
+  const cedula = document.getElementById('verifyCedula').value.trim();
+  const resultsDiv = document.getElementById('verifyResults');
+  if(cedula.length < 5) { showToast('Ingresa una cédula válida'); return; }
+  
+  btn.textContent = '⏳'; btn.disabled = true; resultsDiv.innerHTML = '';
+  try {
+    const { data, error } = await db.from('pedidos').select('id,nombre,cedula,numeros,total,estado,created_at').ilike('cedula', '%' + cedula.replace(/^[VEJvej]-?/,'') + '%');
+    if (error) throw error;
+    if (!data || data.length === 0) {
+      resultsDiv.innerHTML = `<div style="background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.3);border-radius:14px;padding:16px;text-align:center;color:#FCA5A5;font-weight:700">❌ No se encontraron reservas confirmadas.</div>`;
+    } else {
+      let html = '';
+      data.forEach(p => {
+        let badge = p.estado === 'aprobado' ? '<span style="background:rgba(34,197,94,.2);color:#86EFAC;padding:2px 6px;border-radius:6px;font-size:11px">Aprobado</span>' : '<span style="background:rgba(234,179,8,.2);color:#FDE68A;padding:2px 6px;border-radius:6px;font-size:11px">Pendiente</span>';
+        html += `<div style="background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);border-radius:12px;padding:12px;margin-bottom:8px;font-size:13px;"><div class="flex justify-between mb-2"><strong>${p.nombre}</strong>${badge}</div><div class="text-gray-400 text-xs mb-1">Boletos: <span class="text-white">${p.numeros}</span></div><div class="text-orange-300 font-bold">Total: Bs. ${p.total}</div></div>`;
+      });
+      resultsDiv.innerHTML = html;
+    }
+  } catch (err) {
+    resultsDiv.innerHTML = '<div style="background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.3);border-radius:14px;padding:16px;text-align:center;color:#FCA5A5;font-weight:700">❌ Error al consultar. Revisa tu conexión.</div>';
+  } finally {
+    btn.textContent = 'Buscar'; btn.disabled = false;
+  }
+}
+
+function showToast(msg, duration = 3000) {
+  const old = document.querySelector('.toast'); if (old) old.remove();
+  const t = document.createElement('div');
+  t.className = 'toast'; t.textContent = msg;
+  document.body.appendChild(t);
+  setTimeout(() => t.remove(), duration);
+}
+
+function startVIPCountdown() {
+  let c = 3;
+  document.getElementById('cdNum').textContent = c;
+  document.getElementById('cdRing').style.setProperty('--pct', '100%');
+  if (cdInterval) clearInterval(cdInterval);
+  cdInterval = setInterval(() => {
+    c--;
+    document.getElementById('cdNum').textContent = c;
+    document.getElementById('cdRing').style.setProperty('--pct', (c/3)*100 + '%');
+    if (c <= 0) { clearInterval(cdInterval); goVIP(); }
+  }, 1000);
+}
+
+function goVIP() { window.location.href = VIP_URL; }
+function closeSuccessModal() { document.getElementById('successModal').style.display = 'none'; window.location.reload(); }
