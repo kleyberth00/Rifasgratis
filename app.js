@@ -1,12 +1,12 @@
 // ╔══════════════════════════════════════════════════════════════╗
-// ║          RIFA GRATIS M — app.js (CORREGIDO)                 ║
+// ║          RIFA GRATIS M — app.js (30 TICKETS GRATIS)         ║
 // ╚══════════════════════════════════════════════════════════════╝
 
-const PRECIO_BOLETO      = 5;      
-const BOLETOS_EXACTOS    = 50;     // ◄ Siempre exige 50
+const PRECIO_BOLETO      = 0;      
+const BOLETOS_EXACTOS    = 30;     
 const TOTAL_BOLETOS      = 10000;  
 const BOLETOS_POR_PAGINA = 500;    
-const VIP_URL = 'https://chat.whatsapp.com/ChkSensk7jPHY5qS8e2VRM?mode=gi_t'; 
+const VIP_URL = 'https://chat.whatsapp.com/HlIRyaYEKU86h2oQPZTCaM'; 
 
 let ticketStates    = new Map();
 let availableList   = [];
@@ -16,7 +16,6 @@ let selectedTickets = new Set();
 let cdInterval      = null;
 
 document.addEventListener('DOMContentLoaded', async () => {
-  document.getElementById('statPrecio').textContent = PRECIO_BOLETO;
   document.getElementById('statMin').textContent    = BOLETOS_EXACTOS;
   
   showToast('⏳ Cargando rifas...', 1800);
@@ -145,7 +144,7 @@ function randomSelect() {
   currentPage = Math.floor(availableList.indexOf(first) / BOLETOS_POR_PAGINA) + 1;
   renderPage();
   updateFloatingBar();
-  showToast(`🎲 ¡Tus 50 números fueron asignados al azar!`, 2000);
+  showToast(`🎲 ¡Tus 30 números fueron asignados al azar!`, 2000);
 }
 
 function clearSelection(showMsg) {
@@ -157,9 +156,9 @@ function clearSelection(showMsg) {
 
 function updateFloatingBar() {
   let count = selectedTickets.size;
-  document.getElementById('countLabel').innerHTML = `${count} / 50`;
+  document.getElementById('countLabel').innerHTML = `${count} / 30`;
   let tPrice = document.getElementById('totalPrice');
-  if (tPrice) tPrice.textContent = `Bs. ${count * PRECIO_BOLETO}`;
+  if (tPrice) tPrice.textContent = `GRATIS`;
   let pct = Math.min((count / BOLETOS_EXACTOS) * 100, 100);
   document.getElementById('progressBar').style.width = pct + '%';
 }
@@ -182,12 +181,12 @@ function openPayModal() {
   }
   if (count < BOLETOS_EXACTOS) {
     let faltan = BOLETOS_EXACTOS - count;
-    showToast(`⚠️ Mínimo son 50. Te faltan ${faltan} números.`);
+    showToast(`⚠️ Mínimo son 30. Te faltan ${faltan} números.`);
     return;
   }
   if (count > BOLETOS_EXACTOS) {
     let sobran = count - BOLETOS_EXACTOS;
-    showToast(`⚠️ Son 50 nada más. Por favor elimine ${sobran}.`);
+    showToast(`⚠️ Son 30 nada más. Por favor elimine ${sobran}.`);
     return;
   }
 
@@ -238,7 +237,6 @@ async function submitOrder(e) {
   const numerosArr = Array.from(selectedTickets).sort((a,b) => a-b);
 
   try {
-    // ◄ ESCUDO ANTIFRAUDE: Bloquea si la cédula o el teléfono ya existen
     const { data: duplicados, error: errDup } = await db
       .from('pedidos')
       .select('id')
@@ -296,7 +294,7 @@ async function submitOrder(e) {
 async function notificarTelegram(nombre, boletos, total, ref) {
   const BOT_TOKEN = '8666595624:AAGoWxS-9QGxtB1p4opumRqWoyB4n-Su4tI'; 
   const CHAT_ID = '5873749605'; 
-  const mensaje = `🚨 ¡NUEVO REGISTRO! 🔰\n\n👤 Cliente: ${nombre}\n🎟️ Boletos: ${boletos}`;
+  const mensaje = `🚨 ¡NUEVO REGISTRO GRATIS! 🔰\n\n👤 Cliente: ${nombre}\n🎟️ Boletos: ${boletos}`;
   await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
     method: 'POST', headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ chat_id: CHAT_ID, text: mensaje })
