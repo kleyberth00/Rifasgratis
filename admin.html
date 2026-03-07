@@ -2,213 +2,201 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Admin — Rifa Gratis M 🔰</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Admin Maestro — Rifas El Menor 🔰</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="https://cdn.tailwindcss.com"></script>
-  <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&family=Space+Grotesk:wght@400;500;700&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;900&display=swap" rel="stylesheet" />
   <style>
-    :root {
-      --gold:#EAB308; --gold-light:#FDE68A; --gold-dark:#A16207;
-      --orange:#F97316; --orange-light:#FDBA74; --orange-dark:#C2410C;
-      --bg:#0a0a0f; --surface:#111118; --surface2:#1a1a24;
-      --text:#F1F0FF; --text-muted:#9B9BAA;
-    }
+    :root { --gold:#EAB308; --orange:#F97316; --bg:#0a0a0f; --surface:#111118; --surface2:#1a1a24; }
     * { box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
-    body { font-family:'Nunito',sans-serif; background:var(--bg); color:var(--text); min-height:100vh; }
+    body { font-family:'Nunito',sans-serif; background:var(--bg); color:#F1F0FF; margin:0; overflow-x:hidden; width:100%; }
     
-    .login-box { background:var(--surface); border:1px solid rgba(234,179,8,.3); border-radius:24px; box-shadow:0 10px 40px rgba(0,0,0,.5); }
-    .form-input { background:rgba(255,255,255,.06); border:1.5px solid rgba(255,255,255,.12); border-radius:12px; color:#fff; outline:none; }
-    .form-input:focus { border-color:var(--gold-light); }
-    
-    .btn-primary { background:linear-gradient(135deg,#A16207,#F97316); color:#000; font-weight:800; border-radius:12px; }
-    .btn-danger { background:rgba(239,68,68,.1); border:1.5px solid #ef4444; color:#ef4444; font-weight:800; border-radius:12px; }
-    .btn-danger:active { background:#ef4444; color:#fff; }
+    /* BLOQUEO DE ZOOM EN MÓVILES */
+    input, select, textarea { font-size: 16px !important; }
 
-    .order-card { background:var(--surface2); border:1px solid rgba(255,255,255,.08); border-radius:18px; margin-bottom:12px; transition:transform .2s; }
-    .status-badge { font-size:10px; font-weight:900; padding:3px 8px; border-radius:6px; text-transform:uppercase; }
+    .btn-tab { padding: 12px 6px; font-size: 10px; font-weight: 900; border-radius: 10px; border: 1px solid rgba(255,255,255,0.05); background: rgba(255,255,255,0.02); color: #888; flex: 1; text-align: center; text-transform: uppercase; }
+    .btn-tab.active { background: var(--gold); color: #000; border-color: var(--gold); }
+
+    .card { background:var(--surface2); border:1px solid rgba(255,255,255,0.08); border-radius:20px; border-left: 5px solid var(--gold); }
+    .wa-btn { background: #22C55E; color: #000; font-weight: 900; border-radius: 10px; padding: 10px; text-align: center; display: block; width: 100%; }
     
-    .modal-overlay { position:fixed; inset:0; background:rgba(0,0,0,.85); backdrop-filter:blur(10px); z-index:500; display:flex; align-items:center; justify-content:center; padding:16px; }
-    .modal-card { background:var(--surface); border:1px solid rgba(234,179,8,.3); border-radius:24px; width:100%; max-width:400px; }
+    .winner-search-area { background: linear-gradient(135deg, rgba(234,179,8,0.15), rgba(249,115,22,0.1)); border: 2px solid var(--gold); border-radius: 20px; }
+    .user-img { width: 100%; height: 160px; object-fit: cover; border-radius: 14px; border: 1px solid rgba(255,255,255,0.1); margin: 10px 0; }
     
-    .toast { position:fixed; bottom:20px; left:50%; transform:translateX(-50%); background:var(--surface2); border:1px solid rgba(255,255,255,.15); border-radius:12px; padding:12px 20px; font-weight:700; z-index:9999; }
+    .toast { position:fixed; bottom:20px; left:50%; transform:translateX(-50%); background:#222; border:1px solid var(--gold); border-radius:10px; padding:10px 20px; z-index:9999; font-size: 12px; font-weight: 800; }
   </style>
 </head>
-<body class="p-4">
+<body class="p-3">
 
-<div id="loginSection" class="max-w-sm mx-auto mt-20 login-box p-8">
-  <div class="text-center mb-6">
-    <div class="text-4xl mb-2">🔐</div>
-    <h1 class="text-2xl font-black text-white">Panel Admin</h1>
-    <p class="text-sm text-gray-400">Rifa Gratis M</p>
-  </div>
-  <input type="password" id="adminPass" class="form-input w-full p-4 text-center text-xl tracking-widest mb-4" placeholder="••••••" />
-  <button onclick="checkLogin()" class="btn-primary w-full py-4">ENTRAR</button>
+<div id="loginSection" class="max-w-xs mx-auto mt-20 p-8 bg-surface border border-white/10 rounded-3xl">
+  <div class="text-center mb-8"><div class="text-5xl mb-2">🔰</div><h1 class="text-xl font-black uppercase">Acceso Admin</h1></div>
+  <input type="password" id="adminPass" class="w-full p-4 bg-white/5 border border-white/10 rounded-2xl text-center mb-4 text-white" placeholder="CONTRASEÑA" />
+  <button onclick="checkLogin()" class="w-full py-4 bg-gradient-to-r from-yellow-500 to-orange-600 text-black font-black rounded-2xl">ENTRAR</button>
 </div>
 
-<div id="adminDashboard" class="hidden max-w-2xl mx-auto">
-  <header class="flex justify-between items-center mb-6">
-    <div>
-      <h1 class="text-2xl font-black text-white">Pedidos 📩</h1>
-      <p class="text-sm text-gray-400" id="statsInfo">Cargando...</p>
+<div id="adminDashboard" class="hidden">
+  <header class="mb-6">
+    <div class="flex justify-between items-center mb-6">
+      <h1 class="text-2xl font-black text-white">Panel 🔰</h1>
+      <div class="flex gap-2">
+        <button onclick="abrirAjustes()" class="p-3 bg-white/5 rounded-xl border border-white/10">⚙️</button>
+        <button onclick="location.reload()" class="p-3 bg-white/5 rounded-xl border border-white/10">🔄</button>
+      </div>
     </div>
-    <div class="flex gap-2">
-      <button onclick="abrirAjustes()" class="p-3 bg-white/5 rounded-xl border border-white/10" title="Ajustes">⚙️</button>
-      <button onclick="location.reload()" class="p-3 bg-white/5 rounded-xl border border-white/10">🔄</button>
+
+    <div class="winner-search-area p-5 mb-8">
+      <h2 class="text-[10px] font-black text-center text-yellow-400 tracking-[3px] mb-4">🏆 BUSCADOR DE GANADOR OFICIAL</h2>
+      <div class="flex gap-2">
+        <input type="number" id="inputWinner" class="flex-1 bg-black/60 border border-white/20 p-4 rounded-2xl text-center text-2xl font-black text-yellow-400" placeholder="0000" />
+        <button onclick="buscarGanador()" class="bg-gold px-5 text-black font-black rounded-2xl text-xs">BUSCAR</button>
+      </div>
+      <div id="winnerResult"></div>
     </div>
+
+    <div class="flex gap-1 mb-4">
+      <button onclick="setFilter('todos', this)" class="btn-tab active">Todos</button>
+      <button onclick="setFilter('aprobado', this)" class="btn-tab">Aprobados</button>
+      <button onclick="setFilter('pendiente', this)" class="btn-tab">Pendientes</button>
+      <button onclick="setFilter('rechazado', this)" class="btn-tab">Rechazados</button>
+    </div>
+
+    <input type="text" id="adminSearch" oninput="filterData()" class="w-full p-4 bg-white/5 border border-white/10 rounded-2xl text-sm" placeholder="🔍 Buscar nombre o cédula..." />
   </header>
 
-  <div id="ordersList" class="space-y-4">
-    <div class="text-center py-20 text-gray-500">Buscando nuevos registros...</div>
-  </div>
+  <div id="ordersList" class="pb-32"></div>
 </div>
 
-<div id="ajustesModal" class="modal-overlay" style="display:none">
-  <div class="modal-card p-6">
-    <h2 class="text-xl font-black mb-4">⚙️ Ajustes del Sistema</h2>
-    
-    <div class="space-y-4">
-      <div class="p-4 bg-white/5 rounded-xl border border-white/10">
-        <label class="text-xs font-bold text-gray-400 block mb-2 uppercase">Ventas de Boletos</label>
-        <div class="flex gap-2">
-          <button onclick="updateVentas(true)" class="flex-1 py-2 bg-green-500/20 text-green-400 border border-green-500/50 rounded-lg text-xs font-bold">ABRIR</button>
-          <button onclick="updateVentas(false)" class="flex-1 py-2 bg-red-500/20 text-red-400 border border-red-500/50 rounded-lg text-xs font-bold">PAUSAR</button>
-        </div>
-      </div>
-
-      <div class="p-4 bg-red-500/5 rounded-xl border border-red-500/20">
-        <label class="text-xs font-bold text-red-400 block mb-1 uppercase">Zona Peligrosa</label>
-        <p class="text-[10px] text-gray-500 mb-3">Esto borrará todos los datos para iniciar una nueva rifa.</p>
-        <button onclick="resetearSistema()" class="btn-danger w-full py-3 text-sm">🗑️ BORRAR TODO EL SISTEMA</button>
-      </div>
+<div id="ajustesModal" class="fixed inset-0 bg-black/95 z-[2000] flex items-center justify-center p-6" style="display:none">
+  <div class="bg-surface border border-gold p-6 rounded-3xl w-full max-w-xs text-center">
+    <h2 class="text-lg font-black mb-6">⚙️ AJUSTES</h2>
+    <div class="space-y-3">
+      <button onclick="updateVentas(true)" class="w-full py-3 bg-green-500/20 text-green-400 border border-green-500/30 rounded-xl text-xs font-black uppercase">Abrir Ventas</button>
+      <button onclick="updateVentas(false)" class="w-full py-3 bg-red-500/20 text-red-400 border border-red-500/30 rounded-xl text-xs font-black uppercase">Pausar Ventas</button>
+      <div class="pt-4"><button onclick="resetearSistema()" class="w-full py-4 bg-red-600 text-white font-black rounded-xl text-xs uppercase">🗑️ Borrar Todo</button></div>
     </div>
-
-    <button onclick="cerrarAjustes()" class="w-full mt-6 py-3 text-sm font-bold text-gray-400">CERRAR</button>
+    <button onclick="cerrarAjustes()" class="mt-8 text-gray-500 font-bold text-xs">VOLVER</button>
   </div>
 </div>
 
-<div id="captureModal" class="modal-overlay" style="display:none" onclick="this.style.display='none'">
-  <div class="max-w-lg w-full">
-    <img id="captureImg" src="" class="w-full rounded-2xl shadow-2xl border-2 border-white/20" />
-    <p class="text-center mt-4 text-sm font-bold">Toca afuera para cerrar</p>
-  </div>
-</div>
-
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="config.js"></script>
 <script>
-  let orders = [];
+  let allData = [];
+  let currentFilter = 'todos';
 
   function checkLogin() {
-    const pass = document.getElementById('adminPass').value;
-    if (pass === 'admin123') { // ◄ Cambia tu clave aquí
-      document.getElementById('loginSection').classList.add('hidden');
+    if (document.getElementById('adminPass').value === 'admin123') {
+      document.getElementById('loginSection').style.display = 'none';
       document.getElementById('adminDashboard').classList.remove('hidden');
-      loadOrders();
-    } else {
-      alert("Clave incorrecta");
-    }
+      loadData();
+    } else { alert("Error de acceso"); }
   }
 
-  async function loadOrders() {
+  async function loadData() {
     const { data, error } = await db.from('pedidos').select('*').order('created_at', { ascending: false });
-    if (error) { showToast("Error al cargar"); return; }
-    orders = data;
-    renderOrders();
+    if (!error) { allData = data; filterData(); }
   }
 
-  function renderOrders() {
-    const container = document.getElementById('ordersList');
-    document.getElementById('statsInfo').textContent = `${orders.length} pedidos registrados`;
-    
-    if (orders.length === 0) {
-      container.innerHTML = '<div class="text-center py-20 text-gray-500 text-sm italic">No hay pedidos registrados todavía.</div>';
-      return;
-    }
+  function setFilter(f, btn) {
+    currentFilter = f;
+    document.querySelectorAll('.btn-tab').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    filterData();
+  }
 
-    container.innerHTML = orders.map(o => {
-      const statusColor = o.estado === 'aprobado' ? 'bg-green-500/20 text-green-400' : 'bg-yellow-500/20 text-yellow-400';
+  function filterData() {
+    const s = document.getElementById('adminSearch').value.toLowerCase();
+    let res = allData;
+    if (currentFilter !== 'todos') res = res.filter(o => o.estado === currentFilter);
+    if (s) res = res.filter(o => o.nombre.toLowerCase().includes(s) || o.cedula.toLowerCase().includes(s));
+    renderOrders(res);
+  }
+
+  function renderOrders(data) {
+    const container = document.getElementById('ordersList');
+    container.innerHTML = data.map(o => {
+      const waLink = `https://wa.me/${o.whatsapp.replace(/\D/g,'')}?text=${encodeURIComponent(`Hola ${o.nombre}, soy el administrador de la rifa.`)}`;
       return `
-        <div class="order-card p-4">
-          <div class="flex justify-between items-start mb-3">
-            <div>
-              <div class="font-black text-white">${o.nombre}</div>
-              <div class="text-xs text-gray-400">CI: ${o.cedula} | WA: ${o.whatsapp}</div>
+        <div class="card p-5 mb-4">
+          <div class="flex justify-between items-start mb-2">
+            <div class="w-2/3">
+              <div class="text-lg font-black text-white leading-tight uppercase">${o.nombre}</div>
+              <div class="text-[10px] text-orange-400 font-bold mb-1 uppercase">${new Date(o.created_at).toLocaleString()}</div>
             </div>
-            <span class="status-badge ${statusColor}">${o.estado}</span>
+            <span class="px-2 py-1 rounded text-[8px] font-black uppercase ${o.estado === 'aprobado' ? 'bg-green-500/20 text-green-400' : 'bg-yellow-500/20 text-yellow-400'}">${o.estado}</span>
           </div>
-          <div class="bg-black/30 p-3 rounded-xl mb-4 text-[11px] text-orange-200 break-words font-mono">
-            ${o.numeros}
+          
+          <div class="text-xs text-gray-400 mb-2">CI: ${o.cedula} | WhatsApp: <span class="text-white">${o.whatsapp}</span></div>
+          
+          <div class="bg-black/40 p-3 rounded-xl text-[10px] text-yellow-100 font-mono border border-white/5 break-all mb-3">${o.numeros}</div>
+
+          <div class="text-[9px] font-black text-gray-500 uppercase mb-1">📸 Foto Cédula / Pago:</div>
+          <img src="${o.capture_url}" class="user-img" onclick="window.open(this.src)" />
+
+          <div class="flex gap-2 mt-4">
+            <button onclick="updateStatus('${o.id}', 'aprobado')" class="flex-1 py-3 bg-green-500 text-black rounded-xl text-[10px] font-black uppercase">Aprobar</button>
+            <button onclick="updateStatus('${o.id}', 'rechazado')" class="flex-1 py-3 bg-red-500/20 text-red-500 border border-red-500/30 rounded-xl text-[10px] font-bold uppercase">Rechazar</button>
+            <button onclick="deleteOrder('${o.id}')" class="px-4 py-3 bg-white/5 text-gray-600 rounded-xl">🗑️</button>
           </div>
-          <div class="flex gap-2">
-            <button onclick="verCapture('${o.capture_url}')" class="flex-1 py-2 bg-white/5 border border-white/10 rounded-lg text-xs font-bold">🖼️ VER CÉDULA</button>
-            <button onclick="updateEstado('${o.id}', 'aprobado')" class="flex-1 py-2 bg-green-500 text-black rounded-lg text-xs font-black">APROBAR</button>
-            <button onclick="borrarPedido('${o.id}')" class="p-2 bg-red-500/10 text-red-500 rounded-lg">🗑️</button>
-          </div>
+          <a href="${waLink}" target="_blank" class="wa-btn mt-3 text-xs uppercase">Chatear con cliente 📲</a>
         </div>
       `;
     }).join('');
   }
 
-  function verCapture(url) {
-    document.getElementById('captureImg').src = url;
-    document.getElementById('captureModal').style.display = 'flex';
+  function buscarGanador() {
+    const num = document.getElementById('inputWinner').value.trim().padStart(4, '0');
+    const display = document.getElementById('winnerResult');
+    if (num === "0000" && document.getElementById('inputWinner').value === "") return;
+
+    const win = allData.find(o => o.numeros.split(',').map(n => n.trim()).includes(num));
+
+    if (win) {
+      const link = `https://wa.me/${win.whatsapp.replace(/\D/g,'')}?text=${encodeURIComponent(`¡FELICIDADES ${win.nombre}! 🎉 Eres el ganador con el número ${num}.`)}`;
+      display.innerHTML = `
+        <div class="mt-5 p-5 bg-green-500/20 border-2 border-green-500 rounded-2xl text-center">
+            <div class="text-white text-xs uppercase font-bold mb-1">¡Ganador Localizado!</div>
+            <div class="text-green-400 font-black text-2xl uppercase mb-3">${win.nombre} 🏆</div>
+            <a href="${link}" target="_blank" class="bg-green-500 text-black block py-3 rounded-xl font-black text-xs uppercase">Enviar mensaje ganador 📲</a>
+        </div>`;
+    } else {
+      display.innerHTML = `<div class="mt-4 text-center text-red-500 font-black text-xs uppercase italic">❌ El número ${num} no tiene dueño.</div>`;
+    }
   }
 
-  async function updateEstado(id, estado) {
-    const { error } = await db.from('pedidos').update({ estado }).eq('id', id);
-    if (error) alert("Error");
-    else loadOrders();
+  async function updateStatus(id, s) {
+    await db.from('pedidos').update({ estado: s }).eq('id', id);
+    loadData();
+    showToast("ESTADO ACTUALIZADO");
   }
 
-  async function borrarPedido(id) {
-    if (!confirm("¿Borrar este pedido? Los números se liberarán.")) return;
+  async function deleteOrder(id) {
+    if (!confirm("¿Eliminar este registro?")) return;
     await db.from('tickets').delete().eq('pedido_id', id);
     await db.from('pedidos').delete().eq('id', id);
-    loadOrders();
+    loadData();
   }
 
-  // --- LÓGICA DE BORRADO TOTAL ---
   async function resetearSistema() {
-    const confirm1 = confirm("⚠️ ¡PELIGRO! ¿Estás seguro de que quieres borrar TODOS los pedidos y liberar todos los números? Esta acción no se puede deshacer.");
-    if (!confirm1) return;
-
-    const confirm2 = prompt("Para confirmar, escribe la palabra: BORRAR");
-    if (confirm2 !== "BORRAR") {
-      alert("Confirmación incorrecta.");
-      return;
-    }
-
-    showToast("⏳ Limpiando sistema...", 4000);
-    try {
-      // 1. Borrar tickets (libera los números)
+    if (prompt("Escribe BORRAR para limpiar la base de datos:") === "BORRAR") {
       await db.from('tickets').delete().not('numero', 'is', null);
-      
-      // 2. Borrar pedidos
       await db.from('pedidos').delete().not('id', 'is', null);
-
-      showToast("✅ ¡SISTEMA REINICIADO!", 3000);
+      loadData();
       cerrarAjustes();
-      loadOrders();
-    } catch (err) {
-      alert("Error al limpiar: " + err.message);
     }
   }
 
-  async function updateVentas(estado) {
-    await db.from('landing_config').update({ ventas_activas: estado }).eq('id', 'main');
-    showToast(estado ? "✅ Ventas Abiertas" : "🛑 Ventas Pausadas");
+  async function updateVentas(e) {
+    await db.from('landing_config').update({ ventas_activas: e }).eq('id', 'main');
+    showToast(e ? "VENTAS ABIERTAS" : "VENTAS PAUSADAS");
   }
 
   function abrirAjustes() { document.getElementById('ajustesModal').style.display = 'flex'; }
   function cerrarAjustes() { document.getElementById('ajustesModal').style.display = 'none'; }
-  
-  function showToast(msg, dur = 2000) {
-    const t = document.createElement('div');
-    t.className = 'toast'; t.textContent = msg;
-    document.body.appendChild(t);
-    setTimeout(() => t.remove(), dur);
+  function showToast(m) {
+    const t = document.createElement('div'); t.className = 'toast'; t.textContent = m;
+    document.body.appendChild(t); setTimeout(() => t.remove(), 2500);
   }
 </script>
-
 </body>
 </html>
