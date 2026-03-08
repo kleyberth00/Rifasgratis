@@ -166,8 +166,11 @@
 
   async function updateStatus(id, s) {
     await db.from('pedidos').update({ estado: s }).eq('id', id);
+    if (s === 'rechazado') {
+      await db.from('tickets').delete().eq('pedido_id', id);
+    }
     loadData();
-    showToast("ESTADO ACTUALIZADO");
+    showToast(s === 'rechazado' ? "RECHAZADO Y NÚMEROS LIBERADOS" : "ESTADO ACTUALIZADO");
   }
 
   async function deleteOrder(id) {
